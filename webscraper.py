@@ -3,13 +3,52 @@ from oauth2client.service_account import ServiceAccountCredentials
 import requests
 from bs4 import BeautifulSoup
 import re
-import vars # type: ignore
+import vars #type: ignore
+import xml.etree.ElementTree as ET
+
+
+#Recursive function to traverse the rss for a dictionary with last 7 day stats
+def traverse_rss(url, dict):
+    response = requests.get(url)
+    root = ET.fromstring(response.content)
+    for child in root:
+        if (child.tag == 'next'):
+            traverse_rss(child.text, dict)
+        else:
+            name = child[0] #username
+            lessonlevel = child[4] #lessonlevel
+            last7 = child[9]
+            lesscount = last7[3] #lessoncount
+            workcount = last7[4] #workoutcount
+            puzzlestats = last7[2]
+            puzzlecorrect = puzzlestats[0] #puzzles correct
+            puzzlerchange = puzzlestats[2] #puzzle rating change
+            dict.update({name.text : [lessonlevel.text, int(puzzlecorrect.text),int(puzzlerchange.text), int(lesscount.text),int(workcount.text)]})
+
+#function to make lists from the dictionary
+def buildListsFromDict(uList,dict, lessLevList, puzzleCorrectList, puzzleRChangeList,lessCountList,workCountList):
+    for i in uList:
+        if i in dict:
+            lessLevList.append(dict[i][0])
+            puzzleCorrectList.append(dict[i][1])
+            puzzleRChangeList.append(dict[i][2])
+            lessCountList.append(dict[i][3])
+            workCountList.append(dict[i][4])
+        else:
+            lessLevList.append(filler)
+            puzzleCorrectList.append(filler)
+            puzzleRChangeList.append(filler)
+            lessCountList.append(filler)
+            workCountList.append(filler)
+
+
+
+
 
 # Define the scope
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
 # Add your credentials to the account
-# creds = ServiceAccountCredentials.from_json_keyfile_name('./bchessratings-fc5c5b0d5548.json', scope)
 creds = ServiceAccountCredentials.from_json_keyfile_name(vars.gsheets_api_key_file, scope)
 
 
@@ -20,7 +59,11 @@ client = gspread.authorize(creds)
 sourceSheet = client.open("BC - Students for Website").sheet1
 targetSheet = client.open("RATINGS").sheet1
 
+#Make dictionary off of rss
+dict = {}
+traverse_rss(vars.rss_url, dict)
 
+#build lists off of input sheet
 fNameList = []
 uscfList = []
 lichessList = []
@@ -40,10 +83,21 @@ for row in gList[1:]:
     if (row[3] == ''): ckidList.append(filler)
     else: ckidList.append(row[3])
 
+#make lists off of rss dictionary
+lessLevList = []
+puzzleCorrectList = []
+puzzleRChangeList = []
+lessCountList = []
+workCountList = [] 
+buildListsFromDict(ckidList,dict,lessLevList,puzzleCorrectList,puzzleRChangeList,lessCountList,workCountList)
+
+#initialize updating list and counting variable to iterate and add
 updater = []
 
-for i,j,k,n in zip(uscfList,lichessList,ckidList,fNameList):
+count = 0
 
+#iterate through all the lists, adding stats for each student to the end of the updater list
+for i,j,k,n in zip(uscfList,lichessList,ckidList,fNameList):
     # USCF Ratings part
     uscfr = filler
 
@@ -112,20 +166,14 @@ for i,j,k,n in zip(uscfList,lichessList,ckidList,fNameList):
                     ckidpr = int(match.group(1))
         except:
             pass
-            # level_start = text.find('"level":')
-            # if level_start != -1:
-            #     # Limit the search to the next ~200 characters to stay inside the ratings block
-            #     snippet = text[level_start:level_start + 200]
-                
-            #     #search for fastchess in shortened block
-            #     matchP = re.search(r'"piece":"(\w+)"', snippet)
-            #     matchN = re.search(r'"number":"(\w+)"', snippet)
-            #     if matchP and matchN:
-            #         ckidll = matchP.group(1) + " " + matchN.group(1)
 
     # Write data to sheet
-    updater.append([n,uscfr,lichessrapid,lichesspuzzleR,lichesspuzzleS,ckidpr,ckidfr])
+    updater.append([n,uscfr,ckidpr,lessLevList[count],puzzleCorrectList[count],puzzleRChangeList[count],lessCountList[count],workCountList[count],ckidfr,lichessrapid,lichesspuzzleR,lichesspuzzleS])
+    count = count + 1
 
+
+#using the updater list, add in all the necessary values to the target sheet
 targetSheet.resize(rows=2)
 rsizes = len(updater)
-targetSheet.update(range_name = f'A{2}:G{rsizes+1}',values = updater)
+targetSheet.update(range_name = f'A{2}:L{rsizes+1}',values = updater)
+
