@@ -41,7 +41,13 @@ def buildListsFromDict(uList,dict, lessLevList, puzzleCorrectList, puzzleRChange
             lessCountList.append(filler)
             workCountList.append(filler)
 
-
+def fail_Check(updater, list_of_lists):
+    for i in range(1,len(list_of_lists)): #start one to skip headers
+        og_list = list_of_lists[i]
+        up_list = updater[i-1]
+        for j in range(1,len(og_list)): #start one to skip names
+            if (up_list[j] == filler) and (og_list[j] != filler):
+                updater[i-1][j] = og_list[j]
 
 
 
@@ -95,6 +101,7 @@ buildListsFromDict(ckidList,dict,lessLevList,puzzleCorrectList,puzzleRChangeList
 updater = []
 
 count = 0
+
 
 #iterate through all the lists, adding stats for each student to the end of the updater list
 for i,j,k,n in zip(uscfList,lichessList,ckidList,fNameList):
@@ -171,6 +178,9 @@ for i,j,k,n in zip(uscfList,lichessList,ckidList,fNameList):
     updater.append([n,uscfr,ckidpr,lessLevList[count],puzzleCorrectList[count],puzzleRChangeList[count],lessCountList[count],workCountList[count],ckidfr,lichessrapid,lichesspuzzleR,lichesspuzzleS])
     count = count + 1
 
+#check for fillers not getting new values
+list_of_lists = targetSheet.get_all_values()
+fail_Check(updater, list_of_lists)
 
 #using the updater list, add in all the necessary values to the target sheet
 targetSheet.resize(rows=2)
