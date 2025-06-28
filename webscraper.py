@@ -45,6 +45,19 @@ def fail_Check(updater, list_of_lists):
     for i in range(1,len(list_of_lists)): #start one to skip headers
         og_list = list_of_lists[i]
         up_list = updater[i-1]
+
+        #this makes sure the name matches (just in case new ones added or old ones removed), and makes it so if the new data were to
+        # be empty, it wouldn't be filled with old data previously on that row, it would just stay new data
+        if (og_list[0] != up_list[0]):
+            foundMatch = False
+            for p in list_of_lists:
+                if (p[0] == up_list[0]):
+                    og_list = p
+                    foundMatch = True
+                    break
+            if (foundMatch == False):
+                continue
+            
         for j in range(1,len(og_list)): #start one to skip names
             if (up_list[j] == filler) and (og_list[j] != filler):
                 updater[i-1][j] = og_list[j]
@@ -96,7 +109,6 @@ puzzleRChangeList = []
 lessCountList = []
 workCountList = [] 
 buildListsFromDict(ckidList,dict,lessLevList,puzzleCorrectList,puzzleRChangeList,lessCountList,workCountList)
-
 #initialize updating list and counting variable to iterate and add
 updater = []
 
