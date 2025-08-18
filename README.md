@@ -8,3 +8,4 @@ Scrapes the web for uscf chess ratings, lichess ratings, and chesskid ratings gi
 - Modify 'rss_url' to allow traversal through a chesskid rss
 - 'source_sheet' should have a list of 4 columns, for full names, uscf ids, lichess usernames, and chesskid usernames
 - 'target_sheet' can be empty outside of the header
+- setup a venv by the name of .venv using requirements.txt
